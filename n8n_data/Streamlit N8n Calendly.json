@@ -1,0 +1,211 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "path": "schedule",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const input = items[0].json.text;
+const today = new Date();
+
+const appointmentDate = new Date(today);
+appointmentDate.setDate(today.getDate() + 1);
+appointmentDate.setHours(14, 0, 0, 0);
+
+return [
+  {
+    json: {
+      start_time: appointmentDate.toISOString(),
+      end_time: new Date(appointmentDate.getTime() + 30 * 60000).toISOString(),
+      user_message: input
+    }
+  }
+];"
+      },
+      "id": "2",
+      "name": "Parse Text to Date",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "https://api.calendly.com/event_types",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_CALENDLY_TOKEN"
+            }
+          ]
+        }
+      },
+      "id": "3",
+      "name": "Get Event Types",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [600, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": true,
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "4",
+      "name": "IF Slot Available",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [800, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "https://api.calendly.com/scheduled_events",
+        "method": "POST",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_CALENDLY_TOKEN"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "invitee.email",
+              "value": "user@example.com"
+            },
+            {
+              "name": "invitee.name",
+              "value": "Streamlit User"
+            },
+            {
+              "name": "event_type",
+              "value": "https://api.calendly.com/event_types/YOUR_EVENT_ID"
+            },
+            {
+              "name": "start_time",
+              "value": "={{ $json[\"start_time\"] }}"
+            },
+            {
+              "name": "end_time",
+              "value": "={{ $json[\"end_time\"] }}"
+            }
+          ]
+        }
+      },
+      "id": "5",
+      "name": "Book Meeting",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [1000, 200]
+    },
+    {
+      "parameters": {
+        "responseData": "Meeting has been successfully scheduled!"
+      },
+      "id": "6",
+      "name": "Return Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1200, 200]
+    },
+    {
+      "parameters": {
+        "responseData": "Slot not available. Please try another time."
+      },
+      "id": "7",
+      "name": "Return Failure",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1000, 400]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Text to Date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Text to Date": {
+      "main": [
+        [
+          {
+            "node": "Get Event Types",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Event Types": {
+      "main": [
+        [
+          {
+            "node": "IF Slot Available",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Slot Available": {
+      "main": [
+        [
+          {
+            "node": "Book Meeting",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book Meeting": {
+      "main": [
+        [
+          {
+            "node": "Return Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
+
