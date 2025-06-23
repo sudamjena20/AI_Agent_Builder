@@ -13,8 +13,8 @@ app = FastAPI()
 class Message(BaseModel):
     message: str
 
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyB1zw5RDhbujsa1GdBXjDVw1czyiDBQYkA"
-GEMINI_API_KEY = os.getenv("AIzaSyB1zw5RDhbujsa1GdBXjDVw1czyiDBQYkA")
+GEMINI_API_URL = "Your_API_URL"
+GEMINI_API_KEY = os.getenv("Your_API_KEY")
 
 @app.post("/agent")
 async def agent_handler(message: Message):
